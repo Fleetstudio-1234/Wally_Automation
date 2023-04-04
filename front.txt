@@ -1,0 +1,209 @@
+
+Neg-Case_Data
+#negative test case coverage---start
+
+un_reg_email = virtusa@gmail.com
+spaced_email = \u0020 virtusa@gmail.com
+reg_email = sivakumar.smech@ksrce.ac.in
+
+##negative test case coverage ---end
+## test cover 
+#data
+--------------------------------------------------------------------------------------------------------
+src/test/java - ForgetPasswordValidation
+
+
+package fleetwally.wally;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import fleetwally.wally.testclass.BaseTestClass;
+
+public class ForgetPasswordValidation extends BaseTestClass {
+	@Test(priority = 0)
+	public void launch() {
+		System.out.println("--------Browser Launched -----------");
+		forg_pass.forgetpassword.click();
+	}
+
+	@Test(priority = 1)
+	public void test_1() throws InterruptedException {
+		//empty data validation
+		forg_pass.send_me_code.click();
+		Assert.assertTrue(forg_pass.empty_data_error.getText().contains("* E-mail is mandatory"));
+		System.out.println("------------null validation assertion Passed-----------");
+		driver.navigate().refresh();
+		forg_pass.screen_wait();
+	}
+
+	@Test(priority = 2)
+	public void test_2() throws InterruptedException {
+		//spaced data validation
+		forg_pass.enter_email.sendKeys(prop_neg.getProperty("spaced_email"));
+		forg_pass.send_me_code.click();
+		Assert.assertTrue(forg_pass.Space_validation_error.getText().contains("* Invalid email format"));
+		System.out.println("------------space validation assertion Passed-----------");
+		driver.navigate().refresh();
+		forg_pass.screen_wait();
+		
+	}
+
+	@Test(priority = 3)
+	public void test_3() throws InterruptedException {
+		// unregistered data validation
+		forg_pass.enter_email.sendKeys(prop_neg.getProperty("un_reg_email"));
+		forg_pass.send_me_code.click();
+		Assert.assertTrue(forg_pass.unregistered_email_error.getText().contains("Email does not exists"));
+		System.out.println("------------unregistered email validation asssertion Passed------");
+		forg_pass.screen_wait();
+		driver.navigate().refresh();
+	}
+
+	@Test(priority = 4)
+	public void test_4() throws InterruptedException {
+		// valid data validation
+		forg_pass.enter_email.sendKeys(prop_neg.getProperty("reg_email"));
+		forg_pass.send_me_code.click();
+		System.out.println("------------registered email validation assertion Passed------");
+		System.out.println("---OTP verification pending----");
+
+	}
+}
+
+--------------------------------------------------------------------------------------------------------------------------
+package fleetwally.wally.testclass;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Properties;
+
+import org.apache.commons.io.FileUtils;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.remote.DesiredCapabilities;
+import org.testng.annotations.AfterSuite;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeSuite;
+
+import fleetwally.wally.ForgetPassword;
+import fleetwally.wally.SignupPage;
+import fleetwally.wally.loginPage;
+import fleetwally.wally.signout;
+import io.github.bonigarcia.wdm.WebDriverManager;
+
+public class BaseTestClass {
+	public WebDriver driver;
+	public loginPage logpag;
+	public signout signoutApp;
+	public SignupPage sp;
+	public ForgetPassword forg_pass;
+	public Properties prop_neg;
+
+	@BeforeSuite 
+	public WebDriver initializeDriver() throws IOException {
+		Properties prop = new Properties();
+		String path = System.getProperty("user.dir");
+		FileInputStream fis = new FileInputStream(
+				path + "\\src\\main\\java\\fleetwally\\wally\\resources\\GlobalData.properties");
+		prop.load(fis);
+		String browserName = prop.getProperty("browser");
+		prop_neg = new Properties();
+		String path_neg = System.getProperty("user.dir");
+		FileInputStream neg = new FileInputStream(
+				path_neg + "\\src\\main\\java\\fleetwally\\wally\\resources\\Neg_Case_Data.properties");
+		prop_neg.load(neg);
+
+		if (browserName.equalsIgnoreCase("chrome")) {
+			WebDriverManager.chromedriver().setup();
+			ChromeOptions chromeopt = new ChromeOptions();
+			chromeopt.addArguments("--remote-allow-origins=*");
+			// chromeopt.addArguments("--disable notifications");
+			DesiredCapabilities dc = new DesiredCapabilities();
+			//dc.setCapability(ChromeOptions.CAPABILITY, chromeopt);
+			chromeopt.merge(dc);
+			driver = new ChromeDriver(chromeopt);
+			
+		}
+		if (browserName.equalsIgnoreCase("firefox")) {
+			WebDriverManager.firefoxdriver().setup();
+			driver = new FirefoxDriver();
+		}
+
+		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+		driver.manage().window().maximize();
+		driver.get("https://app.wallyax.com/");
+		return driver;
+
+	}
+	/*  Take screen shot */
+
+	public String getScreenShot(String TestCaseName, WebDriver driver) throws IOException {
+		TakesScreenshot ts = (TakesScreenshot) driver;
+		File source = ts.getScreenshotAs(OutputType.FILE);
+		File file = new File(System.getProperty("user.dir") + "//reports//" + TestCaseName + ".png");
+		FileUtils.copyFile(source, file);
+		return System.getProperty("user.dir") + "//reports//" + TestCaseName + ".png";
+	}
+
+	@BeforeClass
+	public void createobject() {
+
+		logpag = new loginPage(driver);
+		signoutApp = new signout(driver);
+		sp = new SignupPage(driver);
+		forg_pass = new ForgetPassword(driver);
+	}
+
+	@AfterSuite
+	public void closeBrowser() {
+		driver.quit();
+	}
+}
+-------------------------------------------------------------------------------------------
+page object 
+package fleetwally.wally;
+
+import java.util.concurrent.TimeUnit;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriver.Timeouts;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+
+public class ForgetPassword {
+	WebDriver driver;
+
+	//Page Factory initialization
+	public ForgetPassword(WebDriver driver) {
+		this.driver = driver;
+		PageFactory.initElements(driver, this);
+	}
+
+	// forget password? button
+	@FindBy(xpath = "//a[text()='Forgot Password ?']")
+	WebElement forgetpassword;
+	// email text field
+	@FindBy(xpath = "//input[@id='username']")
+	WebElement enter_email;
+	// send_me_code button
+	@FindBy(xpath = "//button[@type='submit']")
+	WebElement send_me_code;
+	// error messages validation text
+	@FindBy(xpath = "//span[text()='* E-mail is mandatory']")
+	WebElement empty_data_error;
+	@FindBy(xpath = "//span[text()='* Invalid email format']")
+	WebElement Space_validation_error;
+	@FindBy(xpath = "//p[text()='Email does not exists']")
+	WebElement unregistered_email_error;
+	public void screen_wait() {
+	Timeouts implicitlyWait = driver.manage().timeouts().implicitlyWait(20,TimeUnit.SECONDS);
+	}
+}
+ 
